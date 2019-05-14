@@ -6,8 +6,6 @@ Of course there are some API gateways you can use, e.g. envoy, zuul, etc. But yo
 # How it works
 In nginx code base, there is a module called ngx_http_auth_request_module, original purpose is implements client authorization based on the result of a subrequest. If the subrequest returns a 2xx response code, the access is allowed. If it returns 401 or 403, the access is denied with the corresponding error code. Any other response code returned by the subrequest is considered an error, also as I side effect it can also set some variable during processing. So if we use this module, replace the authorization with our own service which will set the route header then we are done, sounds pretty simple and cool?
 
-## How to make it work:
-
 1. this module is not enabled by default, you have to enable it by recompile nginx.
 ```--with-http_auth_request_module```
 2. route API request to organizaion service first
@@ -39,7 +37,7 @@ location ~ ^/data_query {
 		  server org_service:8080;
 	}
 ```
-## Try it:
+# Try it:
 In the repo, I provide the POC code and config, you can try it by yourself.
 ```
 docker-compose -f docker-compose.yaml build
@@ -48,6 +46,6 @@ curl http://localhost:8000/data_query?orgId=1
 curl http://localhost:8000/data_query?orgId=2
 ```
 
-## Conclusion:
+# Conclusion:
 Wow, we just use nginx module and configuration change to support dynamic route, also you may consider to use nginx cache module to cache the upstream response, still without code change!!!
 
