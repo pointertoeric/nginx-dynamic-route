@@ -4,7 +4,7 @@ Sometimes we need to dynamically route API requests to backend servers based on 
 Of course there are some API gateways you can use, e.g. envoy, zuul, etc. But you have to write code to support it, but as mentioned in this article you can actually use Nginx module and only nginx configurations to achieve this purpose without any code change.
 
 # How it works
-In nginx code base, there is a module called ngx_http_auth_request_module, original purpose is implements client authorization based on the result of a subrequest. If the subrequest returns a 2xx response code, the access is allowed. If it returns 401 or 403, the access is denied with the corresponding error code. Any other response code returned by the subrequest is considered an error, also as I side effect it can also set some variable during processing. So if we use this module, replace the authorization with our own service which will set the route header then we are done, sounds pretty simple and cool?
+In nginx code base, there is a module called ngx_http_auth_request_module, original purpose is implements client authorization based on the result of a subrequest. If the subrequest returns a 2xx response code, the access is allowed. If it returns 401 or 403, the access is denied with the corresponding error code. Any other response code returned by the subrequest is considered an error, as a side effect it can also set some variable during processing. So if we use this module, replace the authorization with our own service which will set the route header then we are done, sounds pretty simple and cool?
 
 1. this module is not enabled by default, you have to enable it by recompile nginx.
 ```--with-http_auth_request_module```
