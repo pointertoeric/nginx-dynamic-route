@@ -11,13 +11,13 @@ In nginx code base, there is a module called ngx_http_auth_request_module, origi
 2. route API request to organizaion service first
 ```
 location ~ ^/data_query {
-			    auth_request /get_dc;
+	  auth_request /get_dc;
           # set $dynamic to route header value
-			    auth_request_set $dynamic $upstream_http_x_route;
+	  auth_request_set $dynamic $upstream_http_x_route;
           # then dispatch API call to backend
           # Note $upstream will evaluate from a map config whcch map $dynamic to $upstream, see below
           # so if route header is us1, it will map to upstream us1
-			    proxy_pass http://$upstream;
+	  proxy_pass http://$upstream;
 		  }
       
 	map $dynamic $upstream {
