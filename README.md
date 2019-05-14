@@ -1,3 +1,4 @@
+## Http dynamic route based on nginx
 Sometimes we need to dynamically route API requests to backend servers based on some http headers returned by some other service. e.g. a typical use case is,  in a big organization, there are multiple data centers, all API requests for US1 organzation should be handled by backend servers in data center US1, all API requests for US2 organzations should be handled by backend servers in data center US2. The API request looks like ```http://localhost:8000/data_query?orgId=1``` or ```http://localhost:8000/data_query?orgId=2```, but to know which datacenter the organization resides have to call another service e.g. ```http://localhost:8000/get-dc?orgId=1``` which will set http header as ```"x-route": "us1"```, then front A{I gateway can use this header information to dispatch API request to correct backend.
 
 Of course there are some API gateways you can use, e.g. envoy, zuul, etc. But you have to write code to support it, but as mentioned in this article you can actually use Nginx module and only nginx configurations to achieve this purpose without any code change.
@@ -37,6 +38,14 @@ location ~ ^/data_query {
   upstream get_dc {
 		  server org_service:8080;
 	}
+```
+## Try it:
+In the repo, I provide the POC code and config, you can try it by yourself.
+```
+docker-compose -f docker-compose.yaml build
+docker-compose -f docker-compose.yaml up
+curl http://localhost:8000/data_query?orgId=1
+curl http://localhost:8000/data_query?orgId=2
 ```
 
 ## Conclusion:
