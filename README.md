@@ -1,66 +1,44 @@
-In this example, we show how a Lua filter can be used with the Envoy
-proxy. The Envoy proxy [configuration](./envoy.yaml) includes a lua
-filter that contains two functions namely
-`envoy_on_request(request_handle)` and
-`envoy_on_response(response_handle)` as documented
-[here](https://www.envoyproxy.io/docs/envoy/latest/configuration/http_filters/lua_filter).
+Sometimes we need to dynamically route API requests to backend servers based on some http headers returned by some other service. e.g. a typical use case is,  in a big organization, there are multiple data centers, all API requests for US1 organzation should be handled by backend servers in data center US1, all API requests for US2 organzations should be handled by backend servers in data center US2. The API request looks like ```http://localhost:8000/data_query?orgId=1``` or ```http://localhost:8000/data_query?orgId=2```, but to know which datacenter the organization resides have to call another service e.g. ```http://localhost:8000/get-dc?orgId=1``` which will set http header as ```"x-route": "us1"```, then front A{I gateway can use this header information to dispatch API request to correct backend.
 
+Of course there are some API gateways you can use, e.g. envoy, zuul, etc. But you have to write code to support it, but as mentioned in this article you can actually use Nginx module and only nginx configurations to achieve this purpose without any code change.
 
+# How it works
+In nginx code base, there is a module called ngx_http_auth_request_module, original purpose is implements client authorization based on the result of a subrequest. If the subrequest returns a 2xx response code, the access is allowed. If it returns 401 or 403, the access is denied with the corresponding error code. Any other response code returned by the subrequest is considered an error, also as I side effect it can also set some variable during processing. So if we use this module, replace the authorization with our own service which will set the route header then we are done, sounds pretty simple and cool?
 
-# Usage
-1. `docker-compose pull`
-2. `docker-compose up --build`
-3. `curl -v localhost:8000`
+## How to make it work:
 
-## Sample Output:
-
-Curl output should include our headers:
-
+1. this module is not enabled by default, you have to enable it by recompile nginx.
+```--with-http_auth_request_module```
+2. route API request to organizaion service first
 ```
-# <b> curl -v localhost:8000</b>
-* Rebuilt URL to: localhost:8000/
-*   Trying 127.0.0.1...
-* Connected to localhost (127.0.0.1) port 8000 (#0)
-> GET / HTTP/1.1
-> Host: localhost:8000
-> User-Agent: curl/7.47.0
-> Accept: */*
->
-< HTTP/1.1 200 OK
-< x-powered-by: Express
-< content-type: application/json; charset=utf-8
-< content-length: 544
-< etag: W/"220-PQ/ZOdrX2lwANTIy144XG4sc/sw"
-< date: Thu, 31 May 2018 15:29:56 GMT
-< x-envoy-upstream-service-time: 2
-< response-body-size: 544            <-- This is added to the response header by our Lua script. --<
-< server: envoy
-<
-{
-  "path": "/",
-  "headers": {
-    "host": "localhost:8000",
-    "user-agent": "curl/7.47.0",
-    "accept": "*/*",
-    "x-forwarded-proto": "http",
-    "x-request-id": "0adbf0d3-8dfd-452f-a80a-1d6aa2ab06e2",
-    "foo": "bar",                    <-- This is added to the request header by our Lua script. --<
-    "x-envoy-expected-rq-timeout-ms": "15000",
-    "content-length": "0"
-  },
-  "method": "GET",
-  "body": "",
-  "fresh": false,
-  "hostname": "localhost",
-  "ip": "::ffff:172.18.0.2",
-  "ips": [],
-  "protocol": "http",
-  "query": {},
-  "subdomains": [],
-  "xhr": false,
-  "os": {
-    "hostname": "5ad758105577"
-  }
-* Connection #0 to host localhost left intact
-}
-```# nginx-dynamic-route
+location ~ ^/data_query {
+			    auth_request /get_dc;
+          # set $dynamic to route header value
+			    auth_request_set $dynamic $upstream_http_x_route;
+          # then dispatch API call to backend
+          # Note $upstream will evaluate from a map config whcch map $dynamic to $upstream, see below
+          # so if route header is us1, it will map to upstream us1
+			    proxy_pass http://$upstream;
+		  }
+      
+	map $dynamic $upstream {
+		  us1		us1;
+		  us2		us2;
+	}
+
+	upstream us1 {
+		  server backend_us1_service:8080;
+	}
+
+	upstream us2 {
+		  server backend_us2_service:8080;
+	}
+
+  upstream get_dc {
+		  server org_service:8080;
+	}
+```
+
+## Conclusion:
+Wow, we just use nginx module and configuration change to support dynamic route, also you may consider to use nginx cache module to cache the upstream response, still without code change!!!
+
