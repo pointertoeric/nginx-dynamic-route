@@ -1,0 +1,4 @@
+FROM python:2
+RUN pip install Flask
+ADD ./org_service.py /
+ENTRYPOINT python /org_service.py

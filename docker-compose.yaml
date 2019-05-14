@@ -1,0 +1,42 @@
+version: '2'
+services:
+
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile-nginx
+    expose:
+      - "80"
+    ports:
+      - "8000:80"
+    links:
+      - "org_service"
+      - "backend_us1_service"
+      - "backend_us2_service"
+
+  org_service:
+    build:
+      context: .
+      dockerfile: Dockerfile-org-service
+    expose:
+      - "8080"
+    ports:
+      - "8082:8080"
+
+  backend_us1_service:
+    build:
+      context: .
+      dockerfile: Dockerfile-backend-us1
+    expose:
+      - "8080"
+    ports:
+      - "8083:8080"
+
+  backend_us2_service:
+    build:
+      context: .
+      dockerfile: Dockerfile-backend-us2
+    expose:
+      - "8080"
+    ports:
+      - "8084:8080"

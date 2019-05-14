@@ -1,0 +1,4 @@
+FROM python:2
+RUN pip install Flask
+ADD ./backend_us1.py /
+ENTRYPOINT python /backend_us1.py

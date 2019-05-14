@@ -1,0 +1,11 @@
+FROM ubuntu
+RUN apt-get update
+RUN apt-get install -qy build-essential
+RUN apt-get install -qy git
+RUN git clone https://github.com/nginx/nginx.git
+RUN apt-get install -qy libpcre3 libpcre3-dev
+RUN apt-get install -qy zlib1g-dev
+RUN cd nginx; ./auto/configure --with-http_auth_request_module; make; make install
+RUN mkdir -p /var/log/nginx/
+ADD ./nginx.conf /
+ENTRYPOINT /usr/local/nginx/sbin/nginx -c /nginx.conf -g 'daemon off;'
